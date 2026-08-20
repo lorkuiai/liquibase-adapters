@@ -1,0 +1,2 @@
+com.luokuiai.liquibase.kingbase.KingbasePostgresDatabase
+com.luokuiai.liquibase.kingbase.KingbaseMySqlDatabase
