@@ -47,7 +47,20 @@ liquibase \
 
 ## Spring Boot
 
-Add this jar and the Kingbase JDBC driver to the application classpath.
+Add the adapter and the Kingbase JDBC driver to the application classpath. Use
+the latest release version in production. Snapshot builds also require the
+Central Portal snapshot repository.
+
+```groovy
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.luokuiai.liquibase:liquibase-kingbase:<version>'
+    runtimeOnly 'cn.com.kingbase:kingbase8:8.6.0'
+}
+```
 
 Default PostgreSQL compatibility mode:
 
@@ -69,6 +82,59 @@ For the first production version, prefer explicit SQL changesets and explicit
 rollback blocks. Liquibase's structured change types are inherited from the
 PostgreSQL/MySQL implementations and should be validated against your KingbaseES
 compatibility mode before broad use.
+
+When one application supports both KingbaseES compatibility modes, organize
+changelogs by compatibility mode. Directories are for maintainability; the
+`dbms` attribute determines which changesets Liquibase executes.
+
+```text
+src/main/resources/db/changelog/
+  db.changelog-master.yaml
+  common/
+    001-create-user.yaml
+  kingbase-pg/
+    010-postgres-mode.yaml
+  kingbase-mysql/
+    010-mysql-mode.yaml
+```
+
+The master changelog includes every directory:
+
+```yaml
+databaseChangeLog:
+  - includeAll:
+      path: db/changelog/common
+  - includeAll:
+      path: db/changelog/kingbase-pg
+  - includeAll:
+      path: db/changelog/kingbase-mysql
+```
+
+Put SQL that works in both modes in `common` without a `dbms` value. For
+mode-specific SQL, use `kingbase` for the default PostgreSQL-compatible mode
+and `kingbase-mysql` when `liquibase.kingbase.compatMode=mysql` is set:
+
+```yaml
+databaseChangeLog:
+  - changeSet:
+      id: pg-010-add-index
+      author: team
+      dbms: kingbase
+      changes:
+        - sql:
+            sql: create index idx_user_name on sys_user(username)
+```
+
+```yaml
+databaseChangeLog:
+  - changeSet:
+      id: mysql-010-add-index
+      author: team
+      dbms: kingbase-mysql
+      changes:
+        - sql:
+            sql: create index idx_user_name on sys_user(username)
+```
 
 ```yaml
 databaseChangeLog:
