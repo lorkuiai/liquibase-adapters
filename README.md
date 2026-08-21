@@ -1,6 +1,11 @@
-# liquibase-kingbase
+# liquibase-adapters
 
-Liquibase `Database` SPI adapter for KingbaseES.
+Liquibase `Database` SPI adapters for databases that are not supported by
+Liquibase core.
+
+## KingbaseES
+
+The `liquibase-kingbase` module adds KingbaseES support.
 
 This project is intentionally thin. It lets Liquibase recognize
 `jdbc:kingbase8:` URLs and `com.kingbase8.Driver`, then reuses Liquibase's
@@ -85,13 +90,14 @@ databaseChangeLog:
 ## Build
 
 ```bash
-./gradlew test
+./gradlew :liquibase-kingbase:test
 ```
 
-The default Liquibase compile target is `4.33.0`. To verify another version:
+This adapter requires Liquibase 5.x and currently compiles against `5.0.3`.
+To verify another Liquibase 5.x version:
 
 ```bash
-./gradlew test -PliquibaseVersion=5.0.3
+./gradlew :liquibase-kingbase:test -PliquibaseVersion=5.0.3
 ```
 
 KingbaseES integration tests use Testcontainers and the local
@@ -99,11 +105,12 @@ KingbaseES integration tests use Testcontainers and the local
 containers, run a Liquibase update, and verify rollback:
 
 ```bash
-./gradlew integrationTest
+./gradlew :liquibase-kingbase:integrationTest
 ```
 
 Use another image name when required:
 
 ```bash
-./gradlew integrationTest -PkingbaseTestImage=registry/kingbase:v8r6
+./gradlew :liquibase-kingbase:integrationTest \
+  -PkingbaseTestImage=registry/kingbase:v8r6
 ```
