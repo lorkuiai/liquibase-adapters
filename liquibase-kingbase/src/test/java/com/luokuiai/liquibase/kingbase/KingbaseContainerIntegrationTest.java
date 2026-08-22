@@ -18,6 +18,10 @@ import liquibase.database.Database;
 import liquibase.database.DatabaseFactory;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
+import liquibase.snapshot.SnapshotGeneratorFactory;
+import liquibase.structure.core.Index;
+import liquibase.structure.core.Schema;
+import liquibase.structure.core.Table;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
@@ -60,6 +64,18 @@ class KingbaseContainerIntegrationTest {
                         new ClassLoaderResourceAccessor(), database)) {
                     liquibase.update(new Contexts(), new LabelExpression());
                     assertEquals(1, probeRowCount(connection));
+                    if (expectedAdapter == KingbaseMySqlDatabase.class) {
+                        assertEquals(1, queryForInt(connection,
+                                "select count(*) from pg_catalog.pg_indexes "
+                                        + "where schemaname = current_schema() "
+                                        + "and tablename = 'lb_kingbase_probe'"));
+                        assertEquals(1, queryForInt(connection,
+                                "select count(*) from information_schema.columns "
+                                        + "where table_schema = current_schema() "
+                                        + "and table_name = 'databasechangelog' "
+                                        + "and column_name = 'id'"));
+                        verifyIndexSnapshot(database);
+                    }
 
                     liquibase.rollback(1, new Contexts(), new LabelExpression());
                     assertThrows(SQLException.class,
@@ -84,11 +100,29 @@ class KingbaseContainerIntegrationTest {
     }
 
     private int probeRowCount(Connection connection) throws SQLException {
+        return queryForInt(connection, "select count(*) from lb_kingbase_probe");
+    }
+
+    private void verifyIndexSnapshot(Database database) throws Exception {
+        Table example = new Table();
+        example.setSchema(new Schema(database.getDefaultCatalogName(),
+                database.getDefaultSchemaName()));
+        example.setName("lb_kingbase_probe");
+
+        Index indexExample = new Index().setName("lb_kingbase_probe_pkey")
+                .setRelation(example);
+        Index index = SnapshotGeneratorFactory.getInstance().createSnapshot(indexExample, database);
+        assertEquals("lb_kingbase_probe_pkey", index.getName());
+        assertEquals("id", index.getColumns().isEmpty() ? null
+                : index.getColumns().get(0).getName());
+    }
+
+    private int queryForInt(Connection connection, String sql) throws SQLException {
         try (Statement statement = connection.createStatement();
-                ResultSet result = statement.executeQuery(
-                        "select count(*) from lb_kingbase_probe")) {
+                ResultSet result = statement.executeQuery(sql)) {
             result.next();
             return result.getInt(1);
         }
     }
+
 }

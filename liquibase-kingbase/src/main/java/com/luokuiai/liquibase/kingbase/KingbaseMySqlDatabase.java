@@ -55,17 +55,27 @@ public class KingbaseMySqlDatabase extends MySQLDatabase {
 
     @Override
     public boolean supportsSchemas() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsCatalogs() {
-        return false;
+        return true;
     }
 
     @Override
-    protected String getConnectionCatalogName() {
-        return null;
+    protected String getConnectionSchemaName() {
+        try {
+            return getConnection().getUnderlyingConnection().getSchema();
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    @Override
+    public String getLiquibaseSchemaName() {
+        String schema = super.getLiquibaseSchemaName();
+        return schema != null ? schema : getDefaultSchemaName();
     }
 
     @Override
@@ -75,9 +85,8 @@ public class KingbaseMySqlDatabase extends MySQLDatabase {
 
     @Override
     public boolean supports(Class<? extends DatabaseObject> object) {
-        if (Catalog.class.isAssignableFrom(object)
-                || Schema.class.isAssignableFrom(object)) {
-            return false;
+        if (Schema.class.isAssignableFrom(object)) {
+            return true;
         }
         return super.supports(object);
     }
@@ -91,17 +100,14 @@ public class KingbaseMySqlDatabase extends MySQLDatabase {
     @Override
     public CatalogAndSchema getSchemaFromJdbcInfo(String rawCatalogName,
             String rawSchemaName) {
-        return new CatalogAndSchema(null, null);
+        return new CatalogAndSchema(rawCatalogName, rawSchemaName);
     }
 
     @Override
-    public String getDatabaseChangeLogTableName() {
-        return super.getDatabaseChangeLogTableName().toLowerCase(Locale.ROOT);
+    public String correctObjectName(String objectName,
+            Class<? extends DatabaseObject> objectType) {
+        String corrected = super.correctObjectName(objectName, objectType);
+        return corrected == null ? null : corrected.toLowerCase(Locale.ROOT);
     }
 
-    @Override
-    public String getDatabaseChangeLogLockTableName() {
-        return super.getDatabaseChangeLogLockTableName()
-                .toLowerCase(Locale.ROOT);
-    }
 }

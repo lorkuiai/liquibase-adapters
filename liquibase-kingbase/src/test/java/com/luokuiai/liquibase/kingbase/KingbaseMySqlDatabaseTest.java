@@ -3,9 +3,9 @@ package com.luokuiai.liquibase.kingbase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import liquibase.CatalogAndSchema;
-import liquibase.structure.core.Catalog;
 import liquibase.structure.core.Schema;
 import liquibase.structure.core.Table;
 import org.junit.jupiter.api.Test;
@@ -33,18 +33,18 @@ class KingbaseMySqlDatabaseTest {
         CatalogAndSchema catalogAndSchema = database.getSchemaFromJdbcInfo(
                 "kingbase", "public");
 
-        assertNull(catalogAndSchema.getCatalogName());
-        assertNull(catalogAndSchema.getSchemaName());
-        assertFalse(database.supportsSchemas());
-        assertFalse(database.supportsCatalogs());
-        assertNull(database.getConnectionCatalogName());
+        assertEquals("kingbase", catalogAndSchema.getCatalogName());
+        assertEquals("public", catalogAndSchema.getSchemaName());
+        assertTrue(database.supportsSchemas());
+        assertTrue(database.supportsCatalogs());
         assertFalse(database.supportsDDLInTransaction());
-        assertFalse(database.supports(Catalog.class));
-        assertFalse(database.supports(Schema.class));
+        assertTrue(database.supports(Schema.class));
         assertFalse(database.supportsCatalogInObjectName(Table.class));
         assertEquals("databasechangelog",
                 database.getDatabaseChangeLogTableName());
         assertEquals("databasechangeloglock",
                 database.getDatabaseChangeLogLockTableName());
+        assertEquals("database_changelog", database.correctObjectName(
+                "DATABASE_CHANGELOG", Table.class));
     }
 }
