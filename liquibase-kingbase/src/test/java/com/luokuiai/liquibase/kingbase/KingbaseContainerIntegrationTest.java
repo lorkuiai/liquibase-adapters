@@ -37,28 +37,31 @@ class KingbaseContainerIntegrationTest {
 
     @Test
     void runsLiquibaseUpdateAndRollbackInPostgresMode() throws Exception {
-        verifyAdapter("pg", "postgresql", KingbasePostgresDatabase.class);
+        verifyAdapter("pg", KingbasePostgresDatabase.class);
     }
 
     @Test
     void runsLiquibaseUpdateAndRollbackInMySqlMode() throws Exception {
-        verifyAdapter("mysql", "mysql", KingbaseMySqlDatabase.class);
+        verifyAdapter("mysql", KingbaseMySqlDatabase.class);
     }
 
-    private void verifyAdapter(String databaseMode, String adapterMode,
+    private void verifyAdapter(String databaseMode,
             Class<? extends Database> expectedAdapter) throws Exception {
         try (GenericContainer<?> kingbase = kingbase(databaseMode)) {
             kingbase.start();
             String jdbcUrl = String.format("jdbc:kingbase8://%s:%d/kingbase",
                     kingbase.getHost(), kingbase.getMappedPort(KINGBASE_PORT));
 
-            System.setProperty(KingbaseSupport.COMPAT_MODE_PROPERTY, adapterMode);
             try (Connection connection = DriverManager.getConnection(
                     jdbcUrl, "kingbase", "dev")) {
                 Database database = DatabaseFactory.getInstance()
                         .findCorrectDatabaseImplementation(
                                 new JdbcConnection(connection));
                 assertInstanceOf(expectedAdapter, database);
+                if (expectedAdapter == KingbaseMySqlDatabase.class) {
+                    database.setDatabaseChangeLogTableName("database_changelog");
+                    database.setDatabaseChangeLogLockTableName("database_changelog_lock");
+                }
 
                 try (Liquibase liquibase = new Liquibase(CHANGELOG,
                         new ClassLoaderResourceAccessor(), database)) {
@@ -72,8 +75,14 @@ class KingbaseContainerIntegrationTest {
                         assertEquals(1, queryForInt(connection,
                                 "select count(*) from information_schema.columns "
                                         + "where table_schema = current_schema() "
-                                        + "and table_name = 'databasechangelog' "
+                                        + "and table_name = 'database_changelog' "
                                         + "and column_name = 'id'"));
+                        assertEquals(0, queryForInt(connection,
+                                "select count(*) from information_schema.columns "
+                                        + "where table_schema = current_schema() "
+                                        + "and table_name in ('database_changelog', "
+                                        + "'database_changelog_lock') "
+                                        + "and column_name <> lower(column_name)"));
                         verifyIndexSnapshot(database);
                     }
 
