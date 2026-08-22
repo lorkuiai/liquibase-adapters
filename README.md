@@ -25,10 +25,10 @@ liquibase \
   update
 ```
 
-MySQL mode must be selected explicitly:
+The adapter detects KingbaseES V8 MySQL mode from `SHOW database_mode`:
 
 ```bash
-JAVA_OPTS="-Dliquibase.kingbase.compatMode=mysql" liquibase \
+liquibase \
   --classpath=liquibase-kingbase.jar:kingbase8.jar \
   --url=jdbc:kingbase8://localhost:54321/test \
   --username=system \
@@ -36,6 +36,9 @@ JAVA_OPTS="-Dliquibase.kingbase.compatMode=mysql" liquibase \
   --changelog-file=db.changelog.yaml \
   update
 ```
+
+Set `-Dliquibase.kingbase.compatMode=mysql` to override automatic detection
+when a connection does not expose `database_mode`.
 
 You can also bypass auto-detection with Liquibase's `databaseClass` setting:
 
@@ -70,7 +73,7 @@ spring.datasource.url=jdbc:kingbase8://localhost:54321/test
 spring.liquibase.change-log=classpath:/db/changelog/db.changelog-master.yaml
 ```
 
-MySQL compatibility mode:
+Explicit MySQL compatibility-mode override, only when automatic detection is unavailable:
 
 ```bash
 java -Dliquibase.kingbase.compatMode=mysql -jar app.jar
