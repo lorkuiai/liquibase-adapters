@@ -44,5 +44,7 @@ class KingbaseMySqlDatabaseTest {
                 database.getDatabaseChangeLogTableName());
         assertEquals("databasechangeloglock",
                 database.getDatabaseChangeLogLockTableName());
+        assertEquals("database_changelog", database.correctObjectName(
+                "DATABASE_CHANGELOG", Table.class));
     }
 }

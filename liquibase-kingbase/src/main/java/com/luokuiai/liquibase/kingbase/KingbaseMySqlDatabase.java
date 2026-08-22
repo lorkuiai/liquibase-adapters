@@ -1,5 +1,7 @@
 package com.luokuiai.liquibase.kingbase;
 
+import java.util.Locale;
+
 import liquibase.CatalogAndSchema;
 import liquibase.database.DatabaseConnection;
 import liquibase.database.core.MySQLDatabase;
@@ -99,6 +101,13 @@ public class KingbaseMySqlDatabase extends MySQLDatabase {
     public CatalogAndSchema getSchemaFromJdbcInfo(String rawCatalogName,
             String rawSchemaName) {
         return new CatalogAndSchema(rawCatalogName, rawSchemaName);
+    }
+
+    @Override
+    public String correctObjectName(String objectName,
+            Class<? extends DatabaseObject> objectType) {
+        String corrected = super.correctObjectName(objectName, objectType);
+        return corrected == null ? null : corrected.toLowerCase(Locale.ROOT);
     }
 
 }

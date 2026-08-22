@@ -60,6 +60,13 @@ class KingbaseContainerIntegrationTest {
                         new ClassLoaderResourceAccessor(), database)) {
                     liquibase.update(new Contexts(), new LabelExpression());
                     assertEquals(1, probeRowCount(connection));
+                    if (expectedAdapter == KingbaseMySqlDatabase.class) {
+                        assertEquals(1, queryForInt(connection,
+                                "select count(*) from information_schema.columns "
+                                        + "where table_schema = current_schema() "
+                                        + "and table_name = 'databasechangelog' "
+                                        + "and column_name = 'id'"));
+                    }
 
                     liquibase.rollback(1, new Contexts(), new LabelExpression());
                     assertThrows(SQLException.class,
@@ -84,9 +91,12 @@ class KingbaseContainerIntegrationTest {
     }
 
     private int probeRowCount(Connection connection) throws SQLException {
+        return queryForInt(connection, "select count(*) from lb_kingbase_probe");
+    }
+
+    private int queryForInt(Connection connection, String sql) throws SQLException {
         try (Statement statement = connection.createStatement();
-                ResultSet result = statement.executeQuery(
-                        "select count(*) from lb_kingbase_probe")) {
+                ResultSet result = statement.executeQuery(sql)) {
             result.next();
             return result.getInt(1);
         }
